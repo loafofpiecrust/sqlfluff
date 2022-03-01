@@ -3187,8 +3187,47 @@ class InsertStatementSegment(BaseSegment):
         Ref("BracketedColumnReferenceListGrammar", optional=True),
         Sequence("OVERRIDING", OneOf("SYSTEM", "USER"), "VALUE", optional=True),
         Ref("SelectableGrammar"),
+        Ref("InsertConflictSegment", optional=True),
+        Ref("InsertReturningSegment", optional=True),
     )
 
+@postgres_dialect.segment()
+class InsertConflictSegment(BaseSegment):
+    type = "insert_conflict"
+    match_grammar = Sequence(
+        "ON",
+        "CONFLICT",
+        Ref("InsertConflictTargetSegment", optional=True),
+        Ref("InsertConflictActionSegment"),
+    )
+
+@postgres_dialect.segment()
+class InsertConflictTargetSegment(BaseSegment):
+    type = "conflict_target"
+    match_grammar = OneOf(
+        Ref("BracketedColumnReferenceListGrammar"),
+        Sequence(  # [ CONSTRAINT <Constraint name> ]
+            "ON", "CONSTRAINT", Ref("ObjectReferenceSegment")
+        ),
+    )
+
+@postgres_dialect.segment()
+class InsertConflictActionSegment(BaseSegment):
+    type = "conflict_action"
+    match_grammar = OneOf(
+        Sequence("DO", "NOTHING"),
+        Sequence(  # [ CONSTRAINT <Constraint name> ]
+            "DO", Ref("UpdateStatementSegment")
+        ),
+    )
+
+@postgres_dialect.segment()
+class InsertReturningSegment(BaseSegment):
+    type = "insert_returning"
+    match_grammar = Sequence(
+        "RETURNING",
+        Ref("WildcardExpressionSegment"),
+    )
 
 @postgres_dialect.segment(replace=True)
 class DropTypeStatementSegment(BaseSegment):
